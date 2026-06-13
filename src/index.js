@@ -89,16 +89,18 @@ async function main() {
 
   } finally {
     await db.disconnect();
-    console.log(`[Main] DB disconnected. Exiting.`);
+    console.log(`[Main] DB disconnected.`);
   }
 }
 
 main()
-  .then(() => process.exit(process.exitCode ?? 0))
+  .then(() => process.exit(0))
   .catch(async (err) => {
     console.error('[Fatal] Unhandled execution error:', err);
-
-    await sendAdminAlert(`🔴 КРИТИЧНА ПОМИЛКА ПАРСЕРА:\n\n${err.message}`);
-
+    try {
+      await sendAdminAlert(`🔴 КРИТИЧНА ПОМИЛКА ПАРСЕРА:\n\n${err.message}`);
+    } catch (tgErr) {
+      console.error('[Fatal] Failed to send crash alert to Telegram:', tgErr.message);
+    }
     process.exit(1);
   });
