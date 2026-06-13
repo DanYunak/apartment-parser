@@ -1,6 +1,7 @@
 'use strict';
 
 require('dotenv').config();
+const express = require('express');
 
 const { parseOlx } = require('./parsers/olx.parser');
 const { filterListings } = require('./services/filter.service');
@@ -13,6 +14,9 @@ const {
 } = require('./services/dedup.service');
 const { sendAll, sendAdminAlert } = require('./services/telegram.service');
 const db = require('./db/client');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 function validateEnv() {
   const required = [
@@ -36,12 +40,12 @@ function isMorningReportTime() {
   return now.getUTCHours() === 6 && now.getUTCMinutes() < 15;
 }
 
+let isRunning = false;
+
 async function main() {
   const startedAt = Date.now();
   console.log(`\n${'='.repeat(50)}`);
   console.log(`[Main] Run started at ${new Date().toISOString()}`);
-
-  validateEnv();
 
   try {
     const knownIds = await getKnownIds('olx');
@@ -93,14 +97,37 @@ async function main() {
   }
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch(async (err) => {
+app.get('/', (req, res) => {
+  res.status(200).send('Spotter Web Service is running.');
+});
+
+app.get('/trigger', async (req, res) => {
+  if (isRunning) {
+    console.warn('[API] Trigger skipped: Parser is already running');
+    return res.status(429).json({ error: 'Already running' });
+  }
+
+  isRunning = true;
+  
+  res.status(202).json({ message: 'Parser started in background' });
+
+  try {
+    await main();
+  } catch (err) {
     console.error('[Fatal] Unhandled execution error:', err);
     try {
       await sendAdminAlert(`🔴 КРИТИЧНА ПОМИЛКА ПАРСЕРА:\n\n${err.message}`);
     } catch (tgErr) {
       console.error('[Fatal] Failed to send crash alert to Telegram:', tgErr.message);
     }
-    process.exit(1);
-  });
+  } finally {
+    isRunning = false;
+  }
+});
+
+validateEnv();
+
+app.listen(PORT, () => {
+  console.log(`[Server] Web Service listening on port ${PORT}`);
+  console.log(`[Server] Cron trigger URL endpoint: /trigger`);
+});
