@@ -2,21 +2,28 @@
 
 require('dotenv').config();
 
-const { parseOlx }          = require('./parsers/olx.parser');
-const { filterListings }    = require('./services/filter.service');
+const { parseOlx } = require('./parsers/olx.parser');
+const { filterListings } = require('./services/filter.service');
 const {
   getKnownIds,
   saveNewListings,
   getPendingListings,
   markAsSent,
   markAsRetry,
-}                           = require('./services/dedup.service');
-const { sendAll }           = require('./services/telegram.service');
-const db                    = require('./db/client');
+} = require('./services/dedup.service');
+const { sendAll } = require('./services/telegram.service');
+const db = require('./db/client');
 
 function validateEnv() {
-  const required = ['DATABASE_URL', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'];
-  const missing  = required.filter((key) => !process.env[key]);
+  const required = [
+    'DATABASE_URL', 
+    'TELEGRAM_BOT_TOKEN', 
+    'TELEGRAM_CHAT_ID',
+    'OLX_REGION_ID',
+    'OLX_CITY_ID',
+    'OLX_CATEGORY_ID'
+  ];
+  const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length) {
     console.error('[Startup] Missing required env vars:', missing.join(', '));
