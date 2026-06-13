@@ -79,4 +79,20 @@ async function sendAll(listings, onSent, onFailed) {
   return { sent, failed };
 }
 
-module.exports = { sendAll };
+async function sendAdminAlert(text) {
+  try {
+    await axios.post(
+      `${TG_API}/sendMessage`,
+      {
+        chat_id: CHAT_ID,
+        text: text,
+        disable_web_page_preview: true,
+      },
+      { timeout: 10000 }
+    );
+  } catch (err) {
+    console.error(`[TG] Failed to send admin alert: ${err.message}`);
+  }
+}
+
+module.exports = { sendAll, sendAdminAlert };

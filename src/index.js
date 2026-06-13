@@ -11,13 +11,13 @@ const {
   markAsSent,
   markAsRetry,
 } = require('./services/dedup.service');
-const { sendAll } = require('./services/telegram.service');
+const { sendAll, sendAdminAlert } = require('./services/telegram.service');
 const db = require('./db/client');
 
 function validateEnv() {
   const required = [
-    'DATABASE_URL', 
-    'TELEGRAM_BOT_TOKEN', 
+    'DATABASE_URL',
+    'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
     'OLX_REGION_ID',
     'OLX_CITY_ID',
@@ -31,6 +31,11 @@ function validateEnv() {
   }
 }
 
+function isMorningReportTime() {
+  const now = new Date();
+  return now.getUTCHours() === 6 && now.getUTCMinutes() < 15;
+}
+
 async function main() {
   const startedAt = Date.now();
   console.log(`\n${'='.repeat(50)}`);
@@ -40,6 +45,11 @@ async function main() {
 
   try {
     const knownIds = await getKnownIds('olx');
+
+    if (isMorningReportTime()) {
+      console.log('[Main] Sending daily morning report...');
+      await sendAdminAlert(`🟢 Ранковий звіт: Spotter працює штатно.\nОголошень в базі: ${knownIds.size}`);
+    }
 
     const results = await Promise.allSettled([
       parseOlx(knownIds),
@@ -77,15 +87,18 @@ async function main() {
     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
     console.log(`[Main] Done in ${elapsed}s. Sent: ${sent}, Failed: ${failed}`);
 
-  } catch (err) {
-    console.error('[Main] Unhandled error:', err.message);
-    console.error(err.stack);
-    process.exitCode = 1;
-
   } finally {
     await db.disconnect();
     console.log(`[Main] DB disconnected. Exiting.`);
   }
 }
 
-main().then(() => process.exit(process.exitCode ?? 0));
+main()
+  .then(() => process.exit(process.exitCode ?? 0))
+  .catch(async (err) => {
+    console.error('[Fatal] Unhandled execution error:', err);
+
+    await sendAdminAlert(`🔴 КРИТИЧНА ПОМИЛКА ПАРСЕРА:\n\n${err.message}`);
+
+    process.exit(1);
+  });
