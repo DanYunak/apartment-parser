@@ -27,7 +27,9 @@ function extractFloor(params = []) {
 
 function normalizeOffer(offer) {
   try {
-    const price = offer?.price?.value?.value ?? null;
+    const priceParam = (offer.params || []).find((p) => p.key === 'price');
+    const price = priceParam?.value?.value ?? null;
+
     return {
       externalId: String(offer.id),
       source: 'olx',
