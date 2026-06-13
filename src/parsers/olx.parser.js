@@ -4,10 +4,11 @@ const axios = require('axios');
 
 const OLX_API_URL = 'https://www.olx.ua/api/v1/offers/';
 
-const CITY_ID     = parseInt(process.env.OLX_CITY_ID     || '6',    10);
-const CATEGORY_ID = parseInt(process.env.OLX_CATEGORY_ID || '1500', 10);
-const MAX_PRICE   = parseInt(process.env.MAX_PRICE        || '17000',10);
-const LIMIT       = parseInt(process.env.OLX_LIMIT        || '40',   10);
+const REGION_ID = parseInt(process.env.OLX_REGION_ID, 10);
+const CITY_ID = parseInt(process.env.OLX_CITY_ID, 10);
+const CATEGORY_ID = parseInt(process.env.OLX_CATEGORY_ID, 10);
+const MAX_PRICE = parseInt(process.env.MAX_PRICE || '17000', 10);
+const LIMIT = parseInt(process.env.OLX_LIMIT || '40', 10);
 
 const STOP_AFTER_N_KNOWN = 5;
 
@@ -29,12 +30,12 @@ function normalizeOffer(offer) {
     const price = offer?.price?.value?.value ?? null;
     return {
       externalId: String(offer.id),
-      source:     'olx',
-      title:      offer.title ?? '',
-      url:        offer.url   ?? '',
-      price:      price ? Math.round(price) : null,
-      floor:      extractFloor(offer.params),
-      isOwner:    offer.business === false,
+      source: 'olx',
+      title: offer.title ?? '',
+      url: offer.url ?? '',
+      price: price ? Math.round(price) : null,
+      floor: extractFloor(offer.params),
+      isOwner: offer.business === false,
     };
   } catch (err) {
     console.warn('[OLX] Failed to normalize offer:', offer?.id, err.message);
@@ -53,14 +54,17 @@ async function parseOlx(knownIds = new Set()) {
   while (hasMore) {
     const params = {
       offset,
-      limit:                        LIMIT,
-      category_id:                  CATEGORY_ID,
-      city_id:                      CITY_ID,
-      'filter_float_price:to':      MAX_PRICE,
-      'filter_enum_rooms[0]':       'one',
-      owner_type:                   'private',
-      currency:                     'UAH',
-      sort_by:                      'created_at:desc',
+      limit: LIMIT,
+      category_id: CATEGORY_ID,
+      region_id: REGION_ID,
+      city_id: CITY_ID,
+      query: 'довгострокова оренда квартири',
+      'filter_float_price:to': MAX_PRICE,
+      'filter_enum_number_of_rooms_string[0]': 'odnokomnatnye',
+      filter_bool_commission: 1,
+      'filter_float_floor:from': 2,
+      currency: 'UAH',
+      sort_by: 'created_at:desc',
     };
 
     let response;
@@ -72,7 +76,7 @@ async function parseOlx(knownIds = new Set()) {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
             'AppleWebKit/537.36 (KHTML, like Gecko) ' +
             'Chrome/124.0.0.0 Safari/537.36',
-          'Accept':          'application/json',
+          'Accept': 'application/json',
           'Accept-Language': 'uk-UA,uk;q=0.9',
         },
         timeout: 15000,
@@ -89,7 +93,7 @@ async function parseOlx(knownIds = new Set()) {
       break;
     }
 
-    const data  = response.data?.data ?? [];
+    const data = response.data?.data ?? [];
     const links = response.data?.links ?? {};
 
     if (!Array.isArray(data) || data.length === 0) {
