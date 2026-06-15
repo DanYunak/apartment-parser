@@ -20,8 +20,7 @@ function formatMessage(listing) {
     `🏠 *Нове оголошення \\| OLX*\n\n` +
     `📋 ${escape(title)}\n` +
     `💰 *${escape(price)}*\n` +
-    `🏢 ${escape(floor)}\n` +
-    `👤 Від власника\n\n` +
+    `🏢 ${escape(floor)}\n\n` +
     `🔗 [Переглянути оголошення](${listing.url})`
   );
 }
