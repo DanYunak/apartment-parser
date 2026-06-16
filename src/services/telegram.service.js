@@ -21,6 +21,7 @@ function formatMessage(listing) {
     `📋 ${escape(title)}\n` +
     `💰 *${escape(price)}*\n` +
     `🏢 ${escape(floor)}\n\n` +
+    `👤 Від власника\n\n` +
     `🔗 [Переглянути оголошення](${listing.url})`
   );
 }

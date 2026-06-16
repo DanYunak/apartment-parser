@@ -63,6 +63,7 @@ async function parseOlx(knownIds = new Set()) {
       query: 'довгострокова оренда квартири',
       'filter_float_price:to': MAX_PRICE,
       'filter_enum_number_of_rooms_string[0]': 'odnokomnatnye',
+      filter_bool_commission: 1,
       'filter_float_floor:from': 2,
       currency: 'UAH',
       sort_by: 'created_at:desc',
